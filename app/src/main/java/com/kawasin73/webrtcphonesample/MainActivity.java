@@ -97,6 +97,33 @@ public class MainActivity extends AppCompatActivity {
         showCurrentPeerId();
 
         refreshPeerList();
+
+        peer.on(Peer.PeerEventEnum.CALL, new OnCallback() {
+            @Override
+            public void onCallback(Object o) {
+                Log.d(TAG, "CALL Event is Received");
+                if (o instanceof MediaConnection) {
+                    MediaConnection connection = (MediaConnection) o;
+
+                    if (MainActivity.this.connection != null) {
+                        Log.d(TAG, "connection is already created");
+                        connection.close();
+                        return;
+                    }
+
+                    // TODO: show dialog
+
+                    MediaStream stream = MainActivity.this.getMediaStream();
+
+                    connection.answer(stream);
+
+                    setConnectionCallback(connection);
+
+                    MainActivity.this.connection = connection;
+                    Log.d(TAG, "CALL Event is Received and Set");
+                }
+            }
+        });
     }
 
     @Override
