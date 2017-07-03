@@ -11,8 +11,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,14 +52,17 @@ public class MainActivity extends AppCompatActivity {
         adapter = new MyAdapter(this, 0, idList);
         listView.setAdapter(adapter);
 
-        idList.clear();
-        idList.add("Hello1");
-        idList.add("Hello2");
-        idList.add("Hello3");
-        idList.add("Hello4");
-        adapter.notifyDataSetChanged();
+        Button refreshBtn = (Button) findViewById(R.id.refresh_btn);
+        refreshBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                refreshPeerList();
+            }
+        });
 
         showCurrentPeerId();
+
+        refreshPeerList();
     }
 
     private void showCurrentPeerId() {
@@ -70,6 +77,34 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             idTextView.setText("ID: " + currentId);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    private void refreshPeerList() {
+        Log.d(TAG, "Refreshing");
+        peer.listAllPeers(new OnCallback() {
+            @Override
+            public void onCallback(Object o) {
+                if (o instanceof JSONArray) {
+                    JSONArray array = (JSONArray) o;
+                    idList.clear();
+                    for (int i = 0; i < array.length(); i++) {
+                        try {
+                            String id = array.getString(i);
+                            idList.add(id);
+                            Log.d(TAG, "Fetched PeerId: " + id);
+                        } catch (JSONException e) {
+                            Log.e(TAG, "Parse ListAllPeer", e);
+                        }
+                    }
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            adapter.notifyDataSetChanged();
                         }
                     });
                 }
