@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -25,7 +26,11 @@ import org.json.JSONException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.skyway.Peer.Browser.MediaConstraints;
+import io.skyway.Peer.Browser.MediaStream;
 import io.skyway.Peer.Browser.Navigator;
+import io.skyway.Peer.CallOption;
+import io.skyway.Peer.MediaConnection;
 import io.skyway.Peer.OnCallback;
 import io.skyway.Peer.Peer;
 import io.skyway.Peer.PeerOption;
@@ -34,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int RECORD_AUDIO_REQUEST_ID = 1;
     private String TAG = getClass().getSimpleName();
     private Peer peer;
+    private MediaConnection connection;
     private String currentId;
     private TextView idTextView;
     private ListView listView;
@@ -64,6 +70,19 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 refreshPeerList();
+            }
+        });
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                String selectedPeerId = idList.get(i);
+                if (selectedPeerId == null) {
+                    Log.d(TAG, "Selected PeerId == null");
+                    return;
+                }
+                Log.d(TAG, "SelectedPeerId: " + selectedPeerId);
+                call(selectedPeerId);
             }
         });
 
@@ -163,6 +182,49 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void call(String peerId) {
+        Log.d(TAG, "Calling to id:" + peerId);
+        if (peer == null) {
+            Log.i(TAG, "Call but peer is null");
+            return;
+        }
+
+        if (peer.isDestroyed || peer.isDisconnected) {
+            Log.i(TAG, "Call but peer is not active");
+            return;
+        }
+
+        if (connection != null) {
+            Log.d(TAG, "Call but connection is already created");
+            return;
+        }
+
+        MediaStream stream = getMediaStream();
+
+        if (stream == null) {
+            Log.d(TAG, "Call but media stream is null");
+            return;
+        }
+        CallOption option = new CallOption();
+        option.metadata = "test"; // TODO: metadata
+        MediaConnection connection = peer.call(peerId, stream, option);
+
+        if (connection == null) {
+            Log.d(TAG, "Call but MediaConnection is null");
+            return;
+        }
+
+        this.connection = connection;
+        Log.d(TAG, "connection started!");
+    }
+
+    private MediaStream getMediaStream() {
+        MediaConstraints constraints = new MediaConstraints();
+        constraints.videoFlag = false;
+        constraints.audioFlag = true;
+        return Navigator.getUserMedia(constraints);
     }
 
     private class MyAdapter extends ArrayAdapter<String> {
