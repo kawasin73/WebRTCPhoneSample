@@ -73,6 +73,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Button closeBtn = (Button) findViewById(R.id.close_btn);
+        closeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                closeConnection();
+            }
+        });
+
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
@@ -89,6 +97,18 @@ public class MainActivity extends AppCompatActivity {
         showCurrentPeerId();
 
         refreshPeerList();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (connection != null) {
+            closeConnection();
+        }
+        if (peer != null && !peer.isDestroyed) {
+            peer.destroy();
+            peer = null;
+        }
     }
 
     private void checkAudioPermission() {
@@ -216,6 +236,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        setConnectionCallback(connection);
+
         this.connection = connection;
         Log.d(TAG, "connection started!");
     }
@@ -225,6 +247,24 @@ public class MainActivity extends AppCompatActivity {
         constraints.videoFlag = false;
         constraints.audioFlag = true;
         return Navigator.getUserMedia(constraints);
+    }
+
+    private void setConnectionCallback(MediaConnection connection) {
+        connection.on(MediaConnection.MediaEventEnum.CLOSE, new OnCallback() {
+            @Override
+            public void onCallback(Object o) {
+                Log.d(TAG, "Close Event is Received");
+                closeConnection();
+            }
+        });
+    }
+
+    private void closeConnection() {
+        if (connection != null) {
+            connection.close();
+            MainActivity.this.connection = null;
+            Log.d(TAG, "Connection is Closed");
+        }
     }
 
     private class MyAdapter extends ArrayAdapter<String> {
